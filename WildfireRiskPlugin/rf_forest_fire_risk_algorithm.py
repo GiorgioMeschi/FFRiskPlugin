@@ -308,8 +308,8 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         prepare_layers = PrepareRiskInputs(context, feedback, crs)
         risk_model = RiskEval(context, feedback)
 
-        print('processing hazard for risk..')
-        hazard_class = risk_model.process_hazards(hazard_arr)
+        # print('processing hazard for risk..')
+        # hazard_class = risk_model.process_hazards(hazard_arr)
 
         # Open POI info table
         exposed_table = self.parameterAsMatrix(parameters, INPUT_TABLE, context)
@@ -512,7 +512,9 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         if urb_layer is not None:
             urb = helper.reproject_layer(urb_layer, hazr)
             urb_path, urb_raster, urb_arr = helper.read_arr_after_qgis_process(urb)
-            urb_cl = np.where(urb_arr == 1, hazard_max_filter, 0)
+            haz_process = np.where(hazard_arr == 0, 1, hazard_arr)
+            hazard_max_filter2 = helper.max_sliding_windows(haz_process, windows_size = (3,3)).astype(int) # max filter including no data point in hazard
+            urb_cl = np.where(urb_arr == 1, hazard_max_filter2, 0)
             name_urb_risk = os.path.join(out_dirpath, 'URB_risk')
             helper.save_temporary_array(urb_cl, hazr, name_urb_risk)
         
