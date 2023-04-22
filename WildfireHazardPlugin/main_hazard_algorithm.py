@@ -98,16 +98,12 @@ FIELD_LC = 'FIELD_LC'
 VEG_CODE = 'VEG_CODE'  # input for Intensity 
 INPUT_ROADS = 'INPUT_ROADS'
 INPUT_FIRES = 'INPUT_FIRES'
-NON_BURNABLE_CODES = 'NON_BURNABLE_CODE'
 OTHER_LAYERS = 'OTHER_LAYERS'
 SAMPLE_TRAIN = 'SAMPLE_TRAIN'
+MAX_DEPTH = 'MAX_DEPTH'
 RISICO_CODE = 'RISICO_CODE'
 FUEL_MODEL_CODE = 'FUEL_MODEL_CODE'
 
-
-OUTPUT_s = 'OUTPUT_s'
-OUTPUT_i = 'OUTPUT_i'
-OUTPUT_h = 'OUTPUT_h'
 
 
 #%%
@@ -143,7 +139,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 INPUT_MASK,
-                self.tr('Input layer - shapefile of your domain'),
+                self.tr('Domain of study area'),
                 optional=True,
             )
         )
@@ -151,7 +147,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 INPUT_DEM,
-                self.tr('Input layer (dem)'),
+                self.tr('DEM file'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('dem')
             )
@@ -160,7 +156,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 INPUT_VEG,
-                self.tr('Input layer (veg)'),
+                self.tr('Land Cover file - RASTER'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('corine'),
                 optional = True,
@@ -170,7 +166,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 INPUT_VEG_S,
-                self.tr('Input layer (veg shapefile)'),
+                self.tr('Land Cover file - SHAPEFILE'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('corine'),
                 optional = True,
@@ -182,7 +178,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterField(
                 FIELD_LC,
-                self.tr('name of field for rasterizing LC layer'),
+                self.tr('Name of field for rasterizing LC layer'),
                 'code_18',
                 INPUT_VEG_S,
                 optional = True,
@@ -192,19 +188,12 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 INPUT_FIRES,
-                self.tr('Input layer (fires)'),
+                self.tr('historical wildfire burned areas'),
                 defaultValue=self.__get_default_value('fire')
             )
         )
 
-        self.addParameter(
-             QgsProcessingParameterString(
-                NON_BURNABLE_CODES,
-                self.tr('Pass a list of not burnable land cover codes:' + \
-                        'It must be separated with a comma (example for 3 codes: 128,129,160)'),
-                defaultValue='111,112,121,123,124,131,132,133,141,142,411,412,421,422,423,523,522,521,512,511,999'
-            )
-        )
+                
 
         self.addParameter(
              QgsProcessingParameterNumber(
@@ -216,6 +205,16 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
                 maxValue=100
             )
         )
+        
+        self.addParameter(
+             QgsProcessingParameterNumber(
+                MAX_DEPTH,
+                self.tr('Depth of random forest classsfier'),
+                optional=True,
+                defaultValue=100,
+            )
+        )
+
             
             
         self.addParameter(
@@ -231,32 +230,10 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
              QgsProcessingParameterFeatureSource(
                 VEG_CODE,
-                self.tr('excel file - vegetation class to Fuel type'),
+                self.tr('excel file - vegetation classes to Fuel type'),
                 defaultValue = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'Excel_input_data', 'CORINE_to_FuelType.xlsx'),
                 ))
         
-        
-        self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                OUTPUT_s,
-                self.tr('Output Susceptibility map')
-            )
-        )
-        
-        
-        self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                OUTPUT_i,
-                self.tr('Output fuel type map')   #prima era intensità e le varaibili si riferiscono a quel nome, ora fule type
-            )
-        )
-        
-        self.addParameter(
-            QgsProcessingParameterRasterDestination(
-                OUTPUT_h,
-                self.tr('Output Hazard map')   # prima era hazard e le varaibili si riferiscono a quel nome, ora intensity
-            )
-        )
         
         
 
@@ -342,19 +319,27 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
             nodata = veg_raster.GetRasterBand(1).GetNoDataValue()
 
 
-
-        # read a 'user defined array of strings' --> the not burnable codes.
-        # the user gives a list of codes in this format: numeric_code1,numeric_code2,ecc 
-        nb_codes = self.parameterAsString(parameters, NON_BURNABLE_CODES, context)
-        # manually create a list of strings from a unique string of codes (example '128,129')
-        nb_codes_list = nb_codes.split(',')
-
+        
+        # read file - veg to fuel type 
+        path_excel = self.parameterAsString(parameters, VEG_CODE, context)
+        excel = QgsVectorLayer(path_excel, 'codes', 'ogr')
+        
+        # extract veg code not burnable 
+        nb_codes_list = list()
+        for feature in excel.getFeatures():
+            if feature['is_not_burnable'] == 'y':
+                nb_codes_list.append(feature['veg'])
+                
+        nb_codes_list = [int(i) for i in nb_codes_list] 
+        nb_codes_list = [str(i) for i in nb_codes_list] 
+        
         # create a mask of vegetated areas
         band = dem_raster.GetRasterBand(1)
         dem_nodata = band.GetNoDataValue()
 
         percentage = self.parameterAsInt(parameters, SAMPLE_TRAIN, context)
-        susc_path = self.parameterAsOutputLayer(parameters, OUTPUT_s, context)
+        max_depth = self.parameterAsInt(parameters, MAX_DEPTH, context)
+
         
         # modelling Wf suscetibility
         algortihm = RFForestAlgorithm(context, feedback)
@@ -369,7 +354,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
                                                                        other_layers_dict
                                                                        )  
         
-        model, X_train, X_test, y_train, y_test = algortihm.train(X_all, Y_all, percentage)
+        model, X_train, X_test, y_train, y_test = algortihm.train(X_all, Y_all, percentage, max_depth)
         
         algortihm.print_stats(model, 
                               X_train, 
@@ -379,46 +364,42 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
                               columns
                               )
         
-        susc_arr, outp_susc_path = algortihm.get_results(model, 
-                                                         X_all, 
-                                                         dem_arr, 
-                                                         dem_raster, 
-                                                         mask, 
-                                                         susc_path
-                                                         )
+        susc_arr = algortihm.get_results(model,
+                                         X_all, 
+                                         dem_arr, 
+                                         dem_raster, 
+                                         mask                                                        
+                                         )
         # masking veg array
         veg_arr[~mask]= -9999
 
         
-        # read file - veg to intensity 
-        path_excel = self.parameterAsString(parameters, VEG_CODE, context)
-        excel = QgsVectorLayer(path_excel, 'codes', 'ogr')
         
         # aggregate vegetation
         veg_arr = np.where(veg_arr < 0, 0, veg_arr)
-        intensity_arr = helper.veg_aggregation(excel, veg_arr) 
-        
-        print('INTENSITY CLASSES: ', np.unique(intensity_arr))
-        
-        # save intensity as qgis raster layer
-        intens_path = self.parameterAsOutputLayer(parameters, OUTPUT_i, context)
-        helper.saverasternd(dem_raster, intens_path, intensity_arr)  
+        fuel_type_arr = helper.veg_aggregation(excel, veg_arr) 
         
         # define the susceptibility classes raster (1 to 3)
         quantiles = np.nanquantile(susc_arr[mask], [0.25, 0.75])                     
         susc_classes_arr = helper.susc_classes(susc_arr, quantiles)
         
         # contingency matrix susc-intensity for assessing the hazard
-        hazard_arr = helper.hazard_matrix(susc_classes_arr, intensity_arr)
+        hazard_arr = helper.hazard_matrix(susc_classes_arr, fuel_type_arr)
         
-        haz_path = self.parameterAsOutputLayer(parameters, OUTPUT_h, context)
-        helper.saverasternd(dem_raster, haz_path, hazard_arr)  
+        # folder download of the user for saving the files
+        dowload_path =  os.path.expanduser(r"~\Downloads\Hazard_output")
+        if not os.path.exists(dowload_path):
+            os.mkdir(dowload_path)
         
-        # initialization of the results
+        susc_p, susc_cl_p = os.path.join(dowload_path, 'susceptibility'), os.path.join(dowload_path, 'susceptibility_classes')
+        ft_p, haz_p = os.path.join(dowload_path, 'fuel_type'), os.path.join(dowload_path, 'hazard')
+        
+        helper.save_temporary_array(susc_arr, dem, susc_p)
+        helper.save_temporary_array(susc_classes_arr, dem, susc_cl_p)
+        helper.save_temporary_array(fuel_type_arr, dem, ft_p)
+        helper.save_temporary_array(hazard_arr, dem, haz_p)
+
         results = {
-            'OUTPUT_s': outp_susc_path,
-            'OUTPUT_i': intens_path,
-            'OUTPUT_h': haz_path,
         }
         
 

@@ -297,6 +297,34 @@ class ProcessingHelper:
         outDs.SetGeoTransform(gdal_data.GetGeoTransform())
         outDs.SetProjection(gdal_data.GetProjection())
 
+    def save_temporary_array(self, array, reference_raster, out_path = None):
+        
+        '''
+        save array as tif file. out path is whitout extention
+        '''
+        
+        helper = ProcessingHelper(self.context, self.feedback)
+                
+        ref_path = reference_raster.dataProvider().dataSourceUri()
+        ref_raster = gdal.Open(ref_path)
+        # Create a temporary file
+        if out_path != None:
+            temp_file = QTemporaryFile(out_path)
+        else:
+            temp_file = QTemporaryFile('temp')
+        
+        # Open the file and get the file name
+        temp_file.open()
+        temp_raster_path = temp_file.fileName().split('.')[0] + '.tif'
+        temp_file.close()
+        
+        print(f'file TEMP path: {temp_raster_path}')
+        # Create the raster file writer
+        writer = QgsRasterFileWriter(temp_raster_path)
+        helper.saverasternd(ref_raster, temp_raster_path, array)
+                
+        return temp_raster_path         
+
 
     def reclassify_raster_searchsort(self, array, to_classes, actual_classes, nodata = 0): 
         '''

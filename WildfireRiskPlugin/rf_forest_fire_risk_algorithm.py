@@ -86,7 +86,6 @@ DIR_PATH = 'DIR_PATH'
 INPUT_TABLE = 'INPUT_TABLE'
 INPUT_TABLE_ROADS = 'INPUT_TABLE_ROADS'
 INPUT_TABLE_VEG = 'INPUT_TABLE_VEG'
-OUT_DIR_PATH = 'OUT_DIR_PATH'
 
 
 OUT_SHP = 'OUT_SHP'
@@ -125,7 +124,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 INPUT_MASK,
-                self.tr('Input layer - shapefile of your domain'),
+                self.tr('Shapefile of the study area'),
                 optional=True,
             )
         )
@@ -134,7 +133,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 INPUT_VEG,
-                self.tr('Input layer (veg raster)'),
+                self.tr('Land Cover map - RASTER'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('corine'),
                 optional = True,
@@ -146,7 +145,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 INPUT_haz,
-                self.tr('Input layer (Hazard)'),
+                self.tr('Wildfire Hazard map'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('haz')
             )
@@ -157,7 +156,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterString(
                 DIR_PATH,
-                self.tr('directory path in which POI layers have been stored'),
+                self.tr('Directory path of exposed element files'),
                 # defaultValue=r'C:\Users\Giorg\CIMA Dropbox\Giorgio Meschi\CIMA\progetti\IPA_FF_balcani\DATI\[2]_Assets\assets_albania\mix_processed_pois',
             )
         )
@@ -165,13 +164,13 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterMatrix(
                 INPUT_TABLE,
-                self.tr('input table'),
-                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E', 'directory'],
-                defaultValue = ['hospitals.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 100, 'temp_' + str(np.linspace(0,0,500)),
-                                'schools.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 100, 'temp_' + str(np.linspace(0,0,500)),
-                                'hotels.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 80, 'temp_' + str(np.linspace(0,0,500)),
-                                'shelters.shp', 0.2, 0.4, 0.5, 0.7, 0.8, 1, 70, 'temp_' + str(np.linspace(0,0,500)),
-                                'other.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 70, 'temp_' + str(np.linspace(0,0,500)),
+                self.tr('POI input table'),
+                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E'],
+                defaultValue = ['hospitals.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 100, 
+                                'schools.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 100, 
+                                'hotels.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 80, 
+                                'shelters.shp', 0.2, 0.4, 0.5, 0.7, 0.8, 1, 70, 
+                                'other.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 70, 
                      
                     
                              ],
@@ -181,12 +180,11 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterMatrix(
                 INPUT_TABLE_ROADS,
-                self.tr('input table roads'),
-                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E', 'directory'],
-                defaultValue =[ 'primary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 70, 'temp_' + str(np.linspace(0,0,500)),
-                                'secondary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 60, 'temp_' + str(np.linspace(0,0,500)),
-                                'tertiary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 50, 'temp_' + str(np.linspace(0,0,500)),
-                    
+                self.tr('ROADS input table'),
+                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E'],
+                defaultValue =[ 'primary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 70,
+                                'secondary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 60,
+                                'tertiary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 50,
                              
                              ]
                 ))
@@ -195,25 +193,17 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterMatrix(
                 INPUT_TABLE_VEG,
-                self.tr('input table vegetation'),
-                headers = ['file name', 'V1', 'V2', 'V3', 'V4','V5','V6', 'E', 'directory'],
-                defaultValue =[ 'fuel_model_code_23.tif', 0.1, 0.5, 1, 1, 1, 1, 80, 'temp_' + str(np.linspace(0,0,500)),
-                               'fuel_model_code_32.tif', 0.1, 0.1, 0.1, 0.1, 0.5, 1, 90, 'temp_' + str(np.linspace(0,0,500)),
-                               'fuel_model_code_34.tif', 0.1, 0.1, 0.5, 1, 1, 1, 90, 'temp_' + str(np.linspace(0,0,500)),
-                               'fuel_model_code_37.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60, 'temp_' + str(np.linspace(0,0,500)),                               
+                self.tr('VEGETATION input table'),
+                headers = ['file name', 'V1', 'V2', 'V3', 'V4','V5','V6', 'E'],
+                defaultValue =[ 'fuel_model_code_23.tif', 0.1, 0.5, 1, 1, 1, 1, 80, 
+                               'fuel_model_code_32.tif', 0.1, 0.1, 0.1, 0.1, 0.5, 1, 90,
+                               'fuel_model_code_34.tif', 0.1, 0.1, 0.5, 1, 1, 1, 90,
+                               'fuel_model_code_37.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60,                              
                                                 
                              ]
                 ))
         
-        
-        self.addParameter(
-              QgsProcessingParameterString(
-                OUT_DIR_PATH,
-                self.tr('directory path for saving your main output'),
-                # defaultValue=r"C:\Users\Giorg\CIMA Dropbox\Giorgio Meschi\CIMA\progetti\IPA_FF_balcani\DATI\[1]_RISK\risk_albania\vs2_plugin\esempi\layers_test2",
-            )
-        )
-        
+                
         
         
         self.addParameter(
@@ -259,6 +249,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
             QgsProcessingParameterFeatureSink(
                 OUT_SHP,
                 self.tr('output shape POI'),
+                defaultValue = os.path.join(os.path.expanduser(r"~\Downloads\Risk_output"), 'POI_Risk.shp')
             )
         )
 
@@ -270,6 +261,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         Here is where the processing itself takes place.
         """
         print('START\n\n\n\n\n\n')
+        
         
         # load processing functions
         helper = ProcessingHelper(context, feedback)
@@ -314,25 +306,28 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         # Open POI info table
         exposed_table = self.parameterAsMatrix(parameters, INPUT_TABLE, context)
         dirpath = self.parameterAsFile(parameters, DIR_PATH, context) 
-        out_dirpath = self.parameterAsFile(parameters, OUT_DIR_PATH, context)        
+        
+        out_dirpath = os.path.expanduser(r"~\Downloads\Risk_output")
+        if not os.path.exists(out_dirpath):
+            os.mkdir(out_dirpath)
+        
 
         # fixed parameters for POI input table
-        cols = 9
+        cols = 8
         index_filename = 0
-        index_dirpath = -1
         indexes_vulnerabilities = [1,2,3,4,5,6]
         index_exposure = 7
         
         poi_table, nrows = prepare_layers.read_exposed_table(exposed_table, dirpath,
                                                       cols, 
-                                                      index_filename, 
-                                                      index_dirpath)  
+                                                      index_filename 
+                                                      )  
         
-        # problem: when inserted in the table the path is cutted, thus I have put defaul string with a lot of charcaters..       
+               
         print(dirpath)
         
         list_poi_layers_path, list_poi_layers, list_poi_V, list_poi_E = prepare_layers.create_lists_from_table(poi_table, nrows, 
-                                                                                                index_dirpath, index_filename,
+                                                                                                dirpath, index_filename,
                                                                                                 indexes_vulnerabilities, index_exposure)
                                                                     
         
@@ -376,10 +371,17 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         complete_out_path = os.path.join(out_dirpath, 'POI_layer.shp')
         
         try:
-            out_shp_path = helper.merge_vector_layers(list_poi_vector_layers, crs, out_file, complete_out_path)  
+            merged_l, out_shp_path = helper.merge_vector_layers(list_poi_vector_layers, crs, out_file, complete_out_path)  
+            print(merged_l)
         except:
             print('actually no poi files are in place')
             out_shp_path = None                
+        
+        
+        # save POI risk shapefile automatically 
+        # per funzioanre dovrei avere uno shape dei poi merged, quello che esce fuori dal processing non va
+        # helper.save_shapefile(merged_l, out_shp_path, crs)
+        
         
         
         # here I start the other type of layers, namely roads and vegetation 
@@ -390,11 +392,11 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         _roads_table = self.parameterAsMatrix(parameters, INPUT_TABLE_ROADS, context)
         roads_table, nrows_roads = prepare_layers.read_exposed_table(_roads_table, dirpath,
                                                       cols, 
-                                                      index_filename, 
-                                                      index_dirpath)  
+                                                      index_filename 
+                                                      )  
         
         list_roads_layers_path, list_roads_layers, list_roads_V, list_roads_E = prepare_layers.create_lists_from_table(roads_table, nrows_roads, 
-                                                                                                                    index_dirpath, index_filename,
+                                                                                                                    dirpath, index_filename,
                                                                                                                     indexes_vulnerabilities, index_exposure)
         
         # with the roads 
@@ -424,12 +426,12 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         _veg_table = self.parameterAsMatrix(parameters, INPUT_TABLE_VEG, context)
         veg_table, nrows_veg = prepare_layers.read_exposed_table(_veg_table, dirpath,
                                                       cols, 
-                                                      index_filename, 
-                                                      index_dirpath)  
+                                                      index_filename 
+                                                      )  
         
         
         list_veg_layers_path, list_veg_layers, list_veg_V, list_veg_E = prepare_layers.create_lists_from_table(veg_table, nrows_veg, 
-                                                                                                                    index_dirpath, index_filename,
+                                                                                                                    dirpath, index_filename,
                                                                                                                     indexes_vulnerabilities, index_exposure,
                                                                                                                     geotiff = True)
         
@@ -478,8 +480,8 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
 
         
         # salvo tutti nascondendoli all utente
-        name_pdd =  os.path.join(out_dirpath, 'PDD')
-        name_risk = os.path.join(out_dirpath, 'RISK')
+        name_pdd =  os.path.join(out_dirpath, 'total_damage_map')
+        name_risk = os.path.join(out_dirpath, 'total_risk_map')
         helper.save_temporary_array(PDD_tot, hazr, name_pdd)
         helper.save_temporary_array(risk_arr, hazr, name_risk)
 

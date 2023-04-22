@@ -88,7 +88,7 @@ class RFForestAlgorithm:
 
         return X_all, Y_all, dem_arr, mask, columns 
     
-    def train(self, X_all, Y_all, percentage): 
+    def train(self, X_all, Y_all, percentage, max_depth): 
         
         # filter df taking info in the burned points
         fires_rows = Y_all != 0
@@ -113,8 +113,8 @@ class RFForestAlgorithm:
         # create training and testing df with random sampling
         X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.33, random_state=42)
         
-        self.feedback.pushInfo(f'Running RF on data sample: {X_train.shape} ')
-        model  = RandomForestClassifier(n_estimators=self.number_of_trees, verbose = 2)
+        self.feedback.pushInfo(f'Running RF on data sample: {X_train.shape}')
+        model  = RandomForestClassifier(n_estimators=self.number_of_trees, max_depth = max_depth, verbose = 2)
         
         return model, X_train, X_test, y_train, y_test
 
@@ -172,7 +172,7 @@ class RFForestAlgorithm:
 
                 
     
-    def get_results(self, model, X_all, dem_arr, dem_raster, mask, susc_path):
+    def get_results(self, model, X_all, dem_arr, dem_raster, mask):
         
         helper = ProcessingHelper(self.context, self.feedback)
         
@@ -185,10 +185,8 @@ class RFForestAlgorithm:
         # clip susc where dem exsits
         Y_raster[~mask] = -1
                 
-        # save as raster file
-        helper.saverasternd(dem_raster, susc_path, Y_raster)
         
-        return Y_raster, susc_path
+        return Y_raster
 
         
         

@@ -1,4 +1,4 @@
-from qgis.core import QgsProcessing, QgsField, QgsProcessingUtils, QgsVectorFileWriter, QgsRasterFileWriter, QgsVectorLayer
+from qgis.core import QgsProcessing, QgsField, QgsProcessingUtils, QgsVectorFileWriter, QgsRasterFileWriter, QgsVectorLayer, QgsCoordinateReferenceSystem
 from PyQt5.QtCore import QVariant, QTemporaryFile
 import processing
 
@@ -471,8 +471,14 @@ class ProcessingHelper:
         }
         
         # Run the algorithm
-        merged_layer = processing.run("qgis:mergevectorlayers", params)
+        merged_layer = processing.run("qgis:mergevectorlayers", params,             
+                                      context=self.context,
+                                      feedback=self.feedback,
+                                       is_child_algorithm=True,
+                    )
         out_shp_path = merged_layer['OUTPUT']
+        print(out_shp_path)
+        layer = merged_layer['OUTPUT']
                        
         # correction if user does not put a specific path 
         if isinstance(out_shp_path, QgsVectorLayer):    
@@ -488,26 +494,23 @@ class ProcessingHelper:
             print(out_shp_path)
 
 
-        return out_shp_path
+        return layer, out_shp_path
         
         
-    def save_shapefile(self, layer_input, layer_output, temporary_name = 'temp'):
-        '''
-        layer_input is parameterAsVectorLayer()
-        layer_output is parameterAsOutputLayer()
-        '''
-        
-        print(f'adding layer: {layer_output}')  
-        
-        if layer_output.startswith('memory'):
-            print('change path to temp')
-            layer_output = QgsProcessingUtils.generateTempFilename(temporary_name + '.shp')
-            
     
-        QgsVectorFileWriter.writeAsVectorFormat(layer_input, layer_output, "utf-8", layer_input.crs(), "ESRI Shapefile")
+    
+    def save_shapefile(self, reference_layer, out_shp_path, crs):
         
-                
-        return layer_output
+                            
+        _crs = QgsCoordinateReferenceSystem(crs)
+        # Save the layer to a shapefile
+        error = QgsVectorFileWriter.writeAsVectorFormat(reference_layer, out_shp_path, 'UTF-8', _crs, driverName = 'ESRI Shapefile')
+        
+        # Check for errors
+        if error[0] != QgsVectorFileWriter.NoError:
+            print(f"Error saving layer: {error}")
+        else:
+            print(f"Layer saved as {out_shp_path}")
 
 
     def save_temporary_array(self, array, reference_raster, out_path = None):

@@ -63,7 +63,7 @@ class PrepareRiskInputs:
         return layer_arr, centroid_layer
     
     
-    def read_exposed_table(self, exposed_table, dirpath, cols, index_filename, index_dirpath):
+    def read_exposed_table(self, exposed_table, dirpath, cols, index_filename):
         nrows =  int(len(exposed_table)/cols)
         
         print(f'ROWS: {nrows}')
@@ -71,22 +71,16 @@ class PrepareRiskInputs:
         poi_table = np.array(exposed_table).reshape(nrows, cols)
 
         
-        # in case user specify dir path take that, otherwise take the geenral one
-        for i in range(nrows):
-            if poi_table[i,-1] == 'temp_' + str(np.linspace(0,0,500)):
-                poi_table[i,-1] = dirpath
-            else:
-                pass
         
         return poi_table, nrows
     
     def create_lists_from_table(self, table, nrows, 
-                                index_dirpath, index_filename,
+                                dirpath, index_filename,
                                 indexes_vulnerabilities, index_exposure, geotiff = False):
         '''
         '''
         
-        list_layers_path = [os.path.join(table[i, index_dirpath], table[i, index_filename]) for i in range(nrows)] 
+        list_layers_path = [os.path.join(dirpath, table[i, index_filename]) for i in range(nrows)] 
         print(list_layers_path)
         
         if geotiff:

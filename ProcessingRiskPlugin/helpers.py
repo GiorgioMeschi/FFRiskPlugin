@@ -1,4 +1,4 @@
-from qgis.core import QgsProcessing, QgsField, QgsProcessingUtils, QgsVectorFileWriter, QgsRasterFileWriter, QgsVectorLayer, QgsProject
+from qgis.core import QgsProcessing, QgsField, QgsProcessingUtils, QgsVectorFileWriter, QgsRasterFileWriter, QgsVectorLayer, QgsProject,QgsCoordinateReferenceSystem
 from PyQt5.QtCore import QVariant, QTemporaryFile
 import processing
 
@@ -173,7 +173,42 @@ class ProcessingHelper:
         return veg_arr_aggr
 
 
+    def veg_aggregation_str(self, vector_layer, veg_arr, name_veg_col = 'veg', name_intens_col = 'aggr'):
         
+        codes = list()
+        aggregation = list()
+        
+        for feature in vector_layer.getFeatures():
+            codes.append(feature[name_veg_col])
+            aggregation.append(feature[name_intens_col])
+            
+        codes = [int(i) for i in codes] 
+        codes = [str(i) for i in codes] 
+        aggregation = [str(i) for i in aggregation]
+        
+        print('veg codes:\n', codes, 'intensity:\n', aggregation)
+        
+        veg_arr_aggr = veg_arr.astype(int)
+        veg_arr_aggr = veg_arr_aggr.astype(str)
+
+        
+        breaking = False
+        for i in aggregation:
+            if i in codes:
+                self.feedback.pushInfo('the vegetation codes must be different from aggregation codes')
+                breaking = True
+                break
+            else:
+                pass
+            
+        if not breaking:    
+            for i,j in zip(codes, aggregation):         
+                veg_arr_aggr = np.where(veg_arr_aggr == i, j, veg_arr_aggr)
+        else:
+           self.feedback.pushInfo('could not procede, fix your vegetation codes') 
+        
+        
+        return veg_arr_aggr
 
 
     def hazard_matrix(self, arr1, arr2):  #arr1 take values on the rows, arr2 on the columns
@@ -368,28 +403,19 @@ class ProcessingHelper:
         return mem_layer
 
         
-        
 
-    def save_shapefile(self, layer_input, layer_output, temporary_name = 'temp'):
-        '''
-        layer_input is parameterAsVectorLayer()
-        layer_output is parameterAsOutputLayer()
-        '''
+    def save_shapefile(self, reference_layer, out_shp_path, crs):
         
-        print(f'adding layer: {layer_output}')  
+                            
+        _crs = QgsCoordinateReferenceSystem(crs)
+        # Save the layer to a shapefile
+        error = QgsVectorFileWriter.writeAsVectorFormat(reference_layer, out_shp_path, 'UTF-8', _crs, driverName = 'ESRI Shapefile')
         
-        if layer_output.startswith('memory'):
-            print('change path to temp')
-            layer_output = QgsProcessingUtils.generateTempFilename(temporary_name + '.shp')
-            
-    
-        QgsVectorFileWriter.writeAsVectorFormat(layer_input, layer_output, "utf-8", layer_input.crs(), "ESRI Shapefile")
-        
-        # output has to be inserted in result dict
-        return layer_output
-
-
-
+        # Check for errors
+        if error[0] != QgsVectorFileWriter.NoError:
+            print(f"Error saving layer: {error}")
+        else:
+            print(f"Layer saved as {out_shp_path}")
 
     def save_temporary_array(self, array, reference_raster, out_path = None):
         

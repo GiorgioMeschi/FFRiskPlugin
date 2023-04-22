@@ -113,6 +113,7 @@ class PreprocessingRiskInputs:
         
         # processing of POI
         list_shp_paths = list()
+        list_poi_names = list()
         for poiname, feature_name_list, out_path in zip(names_poi, features_poi, out_file_list):
             
             print(f'i am {poiname}')
@@ -128,8 +129,9 @@ class PreprocessingRiskInputs:
             shp_path = poi_layer_res['OUTPUT']
             
             list_shp_paths.append(shp_path)
+            list_poi_names.append(poiname)
         
-        return list_shp_paths
+        return list_shp_paths, list_poi_names
 
         
     def preprocessing_linear(self, layer, exposed_table, name_field, crs, dem, out_file_list):
@@ -151,11 +153,12 @@ class PreprocessingRiskInputs:
         features = table[:,1]
         
         
-        # processing of POI
+        # processing of rodas
         list_shp_paths = list()
-        for poiname, feature_name_list, out_path in zip(names, features, out_file_list):
+        list_roads_names = list()
+        for rname, feature_name_list, out_path in zip(names, features, out_file_list):
             
-            print(f'i am {poiname}')
+            print(f'i am {rname}')
             feature_name_list = feature_name_list.split(',')
             print(feature_name_list)
 
@@ -169,20 +172,21 @@ class PreprocessingRiskInputs:
             shp_path = poi_layer_res['OUTPUT']
                         
             list_shp_paths.append(shp_path)
+            list_roads_names.append(rname)
         
-        return list_shp_paths
+        return list_shp_paths, list_roads_names
         
       
     def preprocessing_vegetation(self, fuel_model_arr, reference_ras,  out_dirpath):
         
         helper = ProcessingHelper(self.context, self.feedback)
         
-        fuel_model_arr = fuel_model_arr.astype(int)
+        fuel_model_arr = fuel_model_arr.astype(str)
         # fuel_arrs = list()
         for code in np.unique(fuel_model_arr):
             print(f'I am code {code}')
             fuel_exposed = np.where(fuel_model_arr == code, 1, 0)
-            out_path = os.path.join(out_dirpath, f'fuel_model_code_{code}')
+            out_path = os.path.join(out_dirpath, f'fuel_model_{code}')
             print('save fuel code')
             print(out_path)
             helper.save_temporary_array(fuel_exposed, reference_ras, out_path)

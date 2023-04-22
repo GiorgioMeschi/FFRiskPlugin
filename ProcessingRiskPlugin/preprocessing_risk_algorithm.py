@@ -57,7 +57,7 @@ from qgis.core import (QgsFeatureSink, QgsProcessing, QgsProcessingAlgorithm,
 
 
 from qgis.PyQt.QtCore import QCoreApplication
-from PyQt5.QtCore import QVariant
+from PyQt5.QtCore import QVariant, QTemporaryFile
 
 try:
     from scipy import signal
@@ -81,7 +81,7 @@ FIELD_LC = 'FIELD_LC'
 FUEL_MODEL_CODE = 'FUEL_MODEL_CODE'
 INPUT_POI = 'INPUT_POI'
 INPUT_ROADS = 'INPUT_ROADS'
-URB_CODES = 'URB_CODES'
+# URB_CODES = 'URB_CODES'
 
 FIELD_POI = 'FIELD_POI'
 FIELD_ROADS = 'FIELD_ROADS'
@@ -91,7 +91,6 @@ INPUT_TABLE = 'ATTRS'
 INPUT_TABLE_ROADS = 'INPUT_TABLE_ROADS'
 INPUT_TABLE_VEG = 'INPUT_TABLE_VEG'
 
-OUT_DIR_PATH = 'OUT_DIR_PATH'
 
 OUT_SHPS = ['OUT_SHP0', 'OUT_SHP1', 'OUT_SHP2', 'OUT_SHP3', 'OUT_SHP4']
 OUT_SHPS_R = ['LINEAR0', 'LINEAR1', 'LINEAR2']
@@ -181,15 +180,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
                 ))
                 
         
-        
-        self.addParameter(
-              QgsProcessingParameterString(
-                OUT_DIR_PATH,
-                self.tr('directory path for saving your main output'),
-                # defaultValue=r"C:\Users\Giorg\CIMA Dropbox\Giorgio Meschi\CIMA\progetti\IPA_FF_balcani\DATI\[1]_RISK\risk_bosnia\v3_plugin\esempi\layers_test2",
-            )
-        )
-        
+                
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 INPUT_POI,
@@ -232,7 +223,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterMatrix(
                 INPUT_TABLE,
-                self.tr('POI input table - (MAX 5 ROWS)'),
+                self.tr('POI input table (MAX 5 ROWS)'),
                 headers = ['element name', 'attributes - comma separated'],
                 defaultValue = ['hostpitals', 'clinic,hospital,nursing_home',
                                 'schools', 'college,kindergarten,library,school,university',
@@ -246,23 +237,23 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterMatrix(
                 INPUT_TABLE_ROADS,
-                self.tr('ROADS input table - (MAX 3 ROWS)'),
+                self.tr('ROADS input table (MAX 3 ROS)'),
                 headers = ['element name', 'attributes - comma separated'],
-                defaultValue = ['primary', 'primary,motorway,trunk',
-                               'secondary', 'secondary',
-                               'tertiary', 'tertiary',
+                defaultValue = ['primary_roads', 'primary,motorway,trunk',
+                               'secondary_roads', 'secondary',
+                               'tertiary_roads', 'tertiary',
                     
                              ],
                 ))
         
         
-        self.addParameter(
-             QgsProcessingParameterString(
-                URB_CODES,
-                self.tr('Insert urban codes (comma separated list)'),
-                defaultValue = '111,112,121,123,124,131,132,133,141,142',
-                optional = True,
-                ))
+        # self.addParameter(
+        #      QgsProcessingParameterString(
+        #         URB_CODES,
+        #         self.tr('Insert urban codes (comma separated list)'),
+        #         defaultValue = '111,112,121,123,124,131,132,133,141,142',
+        #         optional = True,
+        #         ))
         
         
         for n in range(5):
@@ -277,7 +268,8 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
             self.addParameter(
                 QgsProcessingParameterFeatureSink(
                     OUT_SHPS_R[n],
-                    self.tr(f'Output ROADS: {n}')
+                    self.tr(f'Output ROADS: {n}'),
+                    # defaultValue = os.path.join(os.path.expanduser(r"~\Downloads\Layer_processed"), OUT_SHPS_R[n] + '.shp')
                 )
             )
 
@@ -303,8 +295,12 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         # read file as array
         dem_arr = dem_raster.GetRasterBand(1).ReadAsArray()
         
-        out_dirpath = self.parameterAsFile(parameters, OUT_DIR_PATH, context)        
-        
+        # create an output folder 
+        _dirpath =  os.path.expanduser(r"~\Downloads\Layer_processed")
+        if not os.path.exists(_dirpath):
+            os.mkdir(_dirpath)
+            
+            
         missing_veg = False
         # vegetation shapefile or raster file
         veg_0 = self.parameterAsRasterLayer(parameters, INPUT_VEG, context)
@@ -315,7 +311,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
                 veg_0_result = helper.rasterize_numerical_feature(veg_0, dem, column=field_lc, burn=0.0)
                 veg_path, veg_raster, veg_arr = helper.read_arr_after_qgis_process(veg_0_result)
                 nodata = veg_raster.GetRasterBand(1).GetNoDataValue()
-                out = os.path.join(out_dirpath, 'veg_arr')
+                out = os.path.join(_dirpath, 'veg_arr')
                 helper.save_temporary_array(veg_arr, dem, out) 
             else:
                 print('vegetation layer is missing')
@@ -337,39 +333,65 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         out_file_list = [self.parameterAsOutputLayer(parameters, i, context) for i in OUT_SHPS]
         
         if exposed_table is not None:
-            list_shp_paths = preprocess_exposure.preprocessing_poi(poi_layer, exposed_table, name_field_poi, crs, dem, out_file_list)
+            list_shp_paths, list_poi_names = preprocess_exposure.preprocessing_poi(poi_layer, exposed_table, name_field_poi, crs, dem, out_file_list)
         else:
-            list_shp_paths = [None] 
-            
+            list_shp_paths, list_poi_names = [None], [None]
+        
+        
+        # save filtered shapefiles automatically
+        names = [i + '.shp' for i in list_poi_names]
+        complete_out_paths = [os.path.join(_dirpath, i) for i in names ]
+        
+        for layer, path in zip(list_shp_paths, complete_out_paths):
+            helper.save_shapefile(layer, path, crs)
+        
         exposed_table_r = self.parameterAsMatrix(parameters, INPUT_TABLE_ROADS, context)
         roads_layer = self.parameterAsVectorLayer(parameters, INPUT_ROADS, context)
         out_file_list_r = [self.parameterAsOutputLayer(parameters, i, context) for i in OUT_SHPS_R]
         name_field_roads = self.parameterAsFields(parameters, FIELD_ROADS, context)[0]
         
         if exposed_table_r is not None:
-            list_shp_paths_r = preprocess_exposure.preprocessing_linear(roads_layer, exposed_table_r, name_field_roads, crs, dem, out_file_list_r)
+            list_shp_paths_r, list_roads_names = preprocess_exposure.preprocessing_linear(roads_layer, exposed_table_r, name_field_roads, crs, dem, out_file_list_r)
         else:
-            list_shp_paths_r = [None]          
+            list_shp_paths_r, list_roads_names = [None], [None]    
+            
+        # save filtered shapefiles automatically
+        names_r = [i + '.shp' for i in list_roads_names]
+        complete_out_paths_r = [os.path.join(_dirpath, i) for i in names_r ]
+        
+        for layer, path in zip(list_shp_paths_r, complete_out_paths_r):
+            helper.save_shapefile(layer, path, crs)
                 
         path_excel_fuels = self.parameterAsString(parameters, FUEL_MODEL_CODE, context)
         if path_excel_fuels is not None:
             if missing_veg == False:
                 fuel_codes = QgsVectorLayer(path_excel_fuels, 'fuel_models', 'ogr')
-                fuel_model_arr = helper.veg_aggregation(fuel_codes, veg_arr) # risico veg
+                fuel_model_arr = helper.veg_aggregation_str(fuel_codes, veg_arr) # risico veg
                 print('processing fuels')
                 # it saves a single array of fuel mdoel identified by the user
-                preprocess_exposure.preprocessing_vegetation(fuel_model_arr, dem, out_dirpath)  
+                preprocess_exposure.preprocessing_vegetation(fuel_model_arr, dem, _dirpath)  
         
         
-        urb_codes = self.parameterAsString(parameters, URB_CODES, context)
-        urb_codes_int = [int(i) for i in urb_codes.split(',')]
+        # urb_codes = self.parameterAsString(parameters, URB_CODES, context)
+        # urb_codes_int = [int(i) for i in urb_codes.split(',')]
+        
+        # extract veg code not burnable 
+        urb_codes_int = list()
+        for feature in fuel_codes.getFeatures():
+            if feature['is_urban'] == 'y':
+                urb_codes_int.append(feature['veg'])
+                
+        urb_codes_int = [int(i) for i in urb_codes_int] 
+        # urb_codes_int = [str(i) for i in urb_codes_int] 
+        
+        
         
         if missing_veg == False:
             interface = preprocess_exposure.evaluate_urban_interface(veg_arr, urb_codes_int)
-            out_path_interface = os.path.join(out_dirpath, 'urb_interface')
+            out_path_interface = os.path.join(_dirpath, 'urb_interface')
             helper.save_temporary_array(interface, dem, out_path_interface)        
         
-        
+                
         results = {}
         
         # associate output string with output path - until 5 
