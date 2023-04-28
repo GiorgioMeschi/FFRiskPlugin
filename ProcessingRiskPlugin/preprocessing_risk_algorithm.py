@@ -130,7 +130,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 INPUT_DEM,
-                self.tr('Input layer (dem)'),
+                self.tr('Input DEM'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('dem'),
                 optional = True,
@@ -140,7 +140,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterRasterLayer(
                 INPUT_VEG,
-                self.tr('Input layer (veg raster)'),
+                self.tr('Land Cover (RASTER)'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('corine'),
                 optional = True,
@@ -150,7 +150,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
             QgsProcessingParameterFeatureSource(
                 INPUT_VEG_S,
-                self.tr('Input layer (veg shapefile)'),
+                self.tr('land Cover (SHAPEFILE) - if the raster is not provided.'),
                 #[QgsProcessing.TypeRaster],
                 defaultValue=self.__get_default_value('corine'),
                 optional = True,
@@ -237,7 +237,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         self.addParameter(
               QgsProcessingParameterMatrix(
                 INPUT_TABLE_ROADS,
-                self.tr('ROADS input table (MAX 3 ROS)'),
+                self.tr('ROADS input table (MAX 3 ROWS)'),
                 headers = ['element name', 'attributes - comma separated'],
                 defaultValue = ['primary_roads', 'primary,motorway,trunk',
                                'secondary_roads', 'secondary',
@@ -260,7 +260,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
             self.addParameter(
                 QgsProcessingParameterFeatureSink(
                     OUT_SHPS[n],
-                    self.tr(f'Output POI: {n}')
+                    self.tr(f'Output POI: {n} - automatically saved in .\Downloads\Layer_processed')
                 )
             )
 
@@ -268,7 +268,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
             self.addParameter(
                 QgsProcessingParameterFeatureSink(
                     OUT_SHPS_R[n],
-                    self.tr(f'Output ROADS: {n}'),
+                    self.tr(f'Output ROADS: {n} - automatically saved in .\Downloads\Layer_processed'),
                     # defaultValue = os.path.join(os.path.expanduser(r"~\Downloads\Layer_processed"), OUT_SHPS_R[n] + '.shp')
                 )
             )

@@ -182,9 +182,9 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
                 INPUT_TABLE_ROADS,
                 self.tr('ROADS input table'),
                 headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E'],
-                defaultValue =[ 'primary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 70,
-                                'secondary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 60,
-                                'tertiary.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 50,
+                defaultValue =[ 'primary_roads.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 70,
+                                'secondary_roads.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 60,
+                                'tertiary_roads.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 50,
                              
                              ]
                 ))
@@ -195,10 +195,10 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
                 INPUT_TABLE_VEG,
                 self.tr('VEGETATION input table'),
                 headers = ['file name', 'V1', 'V2', 'V3', 'V4','V5','V6', 'E'],
-                defaultValue =[ 'fuel_model_code_23.tif', 0.1, 0.5, 1, 1, 1, 1, 80, 
-                               'fuel_model_code_32.tif', 0.1, 0.1, 0.1, 0.1, 0.5, 1, 90,
-                               'fuel_model_code_34.tif', 0.1, 0.1, 0.5, 1, 1, 1, 90,
-                               'fuel_model_code_37.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60,                              
+                defaultValue =[ 'fuel_model_crops.tif', 0.1, 0.5, 1, 1, 1, 1, 80, 
+                               'fuel_model_conifers.tif', 0.1, 0.1, 0.1, 0.1, 0.5, 1, 90,
+                               'fuel_model_broadleaves.tif', 0.1, 0.1, 0.5, 1, 1, 1, 90,
+                               'fuel_model_code_shrubs.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60,                              
                                                 
                              ]
                 ))
