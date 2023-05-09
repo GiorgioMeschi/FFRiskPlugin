@@ -70,7 +70,7 @@ try:
     from sklearn.ensemble import RandomForestClassifier 
     from sklearn.metrics import roc_auc_score, mean_squared_error, accuracy_score
 
-except ModuleNotFoundError:
+except: #ModuleNotFoundError:
     import pip
     pip.main(['install', 'scikit-learn'])
     from sklearn.model_selection import train_test_split
@@ -402,7 +402,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         results = {
         }
         
-
+        feedback.pushInfo('Output saved in ./Downloads/Hazard_output')
         
         return results
 

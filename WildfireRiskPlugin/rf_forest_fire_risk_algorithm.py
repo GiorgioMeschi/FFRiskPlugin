@@ -198,7 +198,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
                 defaultValue =[ 'fuel_model_crops.tif', 0.1, 0.5, 1, 1, 1, 1, 80, 
                                'fuel_model_conifers.tif', 0.1, 0.1, 0.1, 0.1, 0.5, 1, 90,
                                'fuel_model_broadleaves.tif', 0.1, 0.1, 0.5, 1, 1, 1, 90,
-                               'fuel_model_code_shrubs.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60,                              
+                               'fuel_model_shrubs.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60,                              
                                                 
                              ]
                 ))
@@ -524,6 +524,8 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         
         results = {'OUT_SHP':out_shp_path} 
         print('DONE\n')
+        
+        feedback.pushInfo('Output saved in ./Downloads/Risk_output')        
         
         return results    
         
