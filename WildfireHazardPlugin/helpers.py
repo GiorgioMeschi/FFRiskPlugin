@@ -278,7 +278,27 @@ class ProcessingHelper:
         
         return out_arr
     
-            
+    def hazard_matrix_V2(self, arr1, arr2):
+        
+        conditions  = [((arr1 == 1) & (arr2 == 1)),
+                        ((arr1 == 2) & (arr2 == 1)),
+                        ((arr1 == 3) & (arr2 == 1)),
+                        ((arr1 == 1) & (arr2 == 2)),
+                        ((arr1 == 2) & (arr2 == 2)),
+                        ((arr1 == 3) & (arr2 == 2)),
+                        ((arr1 == 1) & (arr2 == 3)),
+                        ((arr1 == 2) & (arr2 == 3)),
+                        ((arr1 == 3) & (arr2 == 3)),
+                        ((arr1 == 1) & (arr2 == 4)),
+                        ((arr1 == 2) & (arr2 == 4)),
+                        ((arr1 == 3) & (arr2 == 4)),
+                                            
+                        ]
+    
+        classes    = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+        out_arr   = np.select(conditions, classes, default=0)
+    
+        return out_arr            
 
     def saverasternd(self, gdal_data, filename, raster):
         rows = gdal_data.RasterYSize

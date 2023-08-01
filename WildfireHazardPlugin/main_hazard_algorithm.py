@@ -385,6 +385,7 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         
         # contingency matrix susc-intensity for assessing the hazard
         hazard_arr = helper.hazard_matrix(susc_classes_arr, fuel_type_arr)
+        hazard_arr_12cl = helper.hazard_matrix_V2(susc_classes_arr, fuel_type_arr)
         
         # folder download of the user for saving the files
         dowload_path =  os.path.expanduser(r"~\Downloads\Hazard_output")
@@ -392,12 +393,13 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
             os.mkdir(dowload_path)
         
         susc_p, susc_cl_p = os.path.join(dowload_path, 'susceptibility'), os.path.join(dowload_path, 'susceptibility_classes')
-        ft_p, haz_p = os.path.join(dowload_path, 'fuel_type'), os.path.join(dowload_path, 'hazard')
+        ft_p, haz_p, haz12_p = os.path.join(dowload_path, 'fuel_type'), os.path.join(dowload_path, 'hazard'), os.path.join(dowload_path, 'hazard_12cl')
         
         helper.save_temporary_array(susc_arr, dem, susc_p)
         helper.save_temporary_array(susc_classes_arr, dem, susc_cl_p)
         helper.save_temporary_array(fuel_type_arr, dem, ft_p)
         helper.save_temporary_array(hazard_arr, dem, haz_p)
+        helper.save_temporary_array(hazard_arr_12cl, dem, haz12_p)
 
         results = {
         }
