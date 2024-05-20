@@ -225,7 +225,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
                 INPUT_TABLE,
                 self.tr('POI input table (MAX 5 ROWS)'),
                 headers = ['element name', 'attributes - comma separated'],
-                defaultValue = ['hostpitals', 'clinic,hospital,nursing_home',
+                defaultValue = ['hospitals', 'clinic,hospital,nursing_home',
                                 'schools', 'college,kindergarten,library,school,university',
                                 'hotels', 'hostel,hotel,motel',
                                 'shelters', 'shelter,hunting_stand',
@@ -438,7 +438,7 @@ class PreProcessingAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'BETA'
+        return ''
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)

@@ -23,7 +23,17 @@ class ProcessingHelper:
         
         return path, raster, array
 
-        
+    def evalaute_probabilities(self, hazard_arr, fires_arr):
+
+        P = np.zeros(hazard_arr.shape)
+        h_cl = list(range(1,13))
+        for h in h_cl:
+            # percentage of fires in each hazard class
+            burned_pixels = np.where(hazard_arr == h, fires_arr, 0).sum()
+            all_pixels = np.where(hazard_arr == h, 1, 0).sum()
+            P = np.where(hazard_arr == h, burned_pixels / all_pixels, P)
+
+        return P
         
     def rasterize_numerical_feature(self, layer, reference_layer, column=None, burn=0.0):
         '''

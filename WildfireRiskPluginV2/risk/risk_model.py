@@ -20,13 +20,14 @@ class RiskEval():
         self.damages_exposure_specific = [0, 25, 50, 75, 100] # degree of damage of POI (monetary or importance)
     
     
-
+    
                                 
-    def evaluate_potential_damage(self, intens_arr, array, V, E):
+    def evaluate_potential_damage(self, intens_arr, array, V, E, P):
         '''
         array is the binary array of exposed element
         V is list of vulnerabilities for a single exposed eleemnt (a value for each H value)
         E is a value of exposed element 
+        p the probability to expect damage
         '''
         
         
@@ -35,11 +36,13 @@ class RiskEval():
         
         
         # assign vulnerability to each intensity level 
-        H_levels = [1, 2, 3, 4, 5, 6]
-        V_asset_grid = self.helper.reclassify_raster_searchsort(intens_clipped, V, H_levels, nodata = 0) # no data of I map, return no data: -1
+        # H_levels = [1, 2, 3, 4, 5, 6]
+        ft_levels = [1, 2, 3, 4]
+        V_asset_grid = self.helper.reclassify_raster_searchsort(intens_clipped, V, ft_levels, nodata = 0) # no data of I map, return no data: -1
         
+        P = np.where(array == 1, P, 9999) # high number as no data of probability
         # assign degree of damage multiplying V and importance value
-        damage_degree_map = V_asset_grid * E
+        damage_degree_map = V_asset_grid * E * P
         damage_degree_map = np.where(damage_degree_map < 0, -1, damage_degree_map) # 0 damage exists, -1 is nodata
         
         return damage_degree_map
@@ -273,9 +276,14 @@ class RiskEval():
         
         # classify the map of specific damage with custom classes of damage
         damage_degree_map = np.where(damage_degree_map < 0, -1, damage_degree_map)
+
+        # classify with quantiles:
+        values = damage_degree_map[damage_degree_map > 0] # quantiles excluding 0, no risk if no damage
+        q_vals = np.quantile(values, [0.25, 0.75])
+        classs_vals = [np.min(values), q_vals[0], q_vals[1], np.max(values)]
         
         # classify in 5 classes of potential damage
-        element_risk_arr = self.helper.raster_classes_vals(damage_degree_map, self.damages_exposure_specific, nodata = -1) # nodata -1 will be coverted in class: 0 in output
+        element_risk_arr = self.helper.raster_classes_vals(damage_degree_map, classs_vals, nodata = -1) # nodata -1 will be coverted in class: 0 in output
         
         print(f'uniques specific risk classes: {np.unique(element_risk_arr)}')
         

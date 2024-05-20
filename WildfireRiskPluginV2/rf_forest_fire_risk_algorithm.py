@@ -87,6 +87,8 @@ INPUT_TABLE = 'INPUT_TABLE'
 INPUT_TABLE_ROADS = 'INPUT_TABLE_ROADS'
 INPUT_TABLE_VEG = 'INPUT_TABLE_VEG'
 
+INPUT_PROB = 'INPUT_PROB'
+INPUT_FT = 'INPUT_FT'
 
 OUT_SHP = 'OUT_SHP'
 
@@ -151,7 +153,23 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-                
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                INPUT_PROB,
+                self.tr('probability map'),
+                #[QgsProcessing.TypeRaster],
+                defaultValue=self.__get_default_value('prob')
+            )
+        )
+
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                INPUT_FT,
+                self.tr('Fuel type map'),
+                #[QgsProcessing.TypeRaster],
+                defaultValue=self.__get_default_value('ft')
+            )
+        )
         
         self.addParameter(
               QgsProcessingParameterString(
@@ -165,14 +183,14 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
               QgsProcessingParameterMatrix(
                 INPUT_TABLE,
                 self.tr('POI input table'),
-                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E'],
-                defaultValue = ['hospitals.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 100, 
-                                'schools.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 100, 
-                                'hotels.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 80, 
-                                'shelters.shp', 0.2, 0.4, 0.5, 0.7, 0.8, 1, 70, 
-                                'other.shp', 0.1, 0.2, 0.4, 0.6, 0.7, 0.8, 70, 
+                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'E'],
+                defaultValue = ['hospitals.shp', 0, 0.05, 0.25, 0.5, 44772687, 
+                                'schools.shp', 0, 0.05, 0.25, 0.5, 3177516, 
+                                'hotels.shp', 0, 0.05, 0.25, 0.5, 886367, 
+                                'shelters.shp', 0.2, 0.4, 0.7, 0.9, 35000, 
+                                'other.shp', 0, 0.05, 0.25, 0.5, 799060, 
+                                'buildings.shp', 0, 0.05, 0.25, 0.5, 77128, 
                      
-                    
                              ],
                 
                 ))
@@ -181,10 +199,10 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
               QgsProcessingParameterMatrix(
                 INPUT_TABLE_ROADS,
                 self.tr('ROADS input table'),
-                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'V5', 'V6', 'E'],
-                defaultValue =[ 'primary_roads.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 70,
-                                'secondary_roads.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 60,
-                                'tertiary_roads.shp', 0.1, 0.3, 0.6, 0.8, 1, 1, 50,
+                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'E'],
+                defaultValue =[ 'primary_roads.shp', 0.05, 0.2, 0.4, 0.6, 16200,
+                                'secondary_roads.shp', 0.05, 0.2, 0.4, 0.6, 16200,
+                                'tertiary_roads.shp', 0.05, 0.2, 0.4, 0.6, 16200,
                              
                              ]
                 ))
@@ -194,11 +212,12 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
               QgsProcessingParameterMatrix(
                 INPUT_TABLE_VEG,
                 self.tr('VEGETATION input table'),
-                headers = ['file name', 'V1', 'V2', 'V3', 'V4','V5','V6', 'E'],
-                defaultValue =[ 'fuel_model_crops.tif', 0.1, 0.5, 1, 1, 1, 1, 80, 
-                               'fuel_model_conifers.tif', 0.1, 0.1, 0.1, 0.1, 0.5, 1, 90,
-                               'fuel_model_broadleaves.tif', 0.1, 0.1, 0.5, 1, 1, 1, 90,
-                               'fuel_model_shrubs.tif', 0.1, 0.1, 0.1, 0.5, 1, 1, 60,                              
+                headers = ['file name', 'V1', 'V2', 'V3', 'V4', 'E'],
+                defaultValue =[  
+                               'fuel_model_conifers.tif', 0, 0, 0, 0.8, 10628,
+                               'fuel_model_broadleaves.tif', 0, 0.1, 0, 0, 700,
+                               'fuel_model_crops.tif', 1, 1, 1, 1, 80,
+                               'fuel_model_shrubs.tif', 0, 0, 1, 1, 60,                              
                                                 
                              ]
                 ))
@@ -215,14 +234,6 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         )
         
         
-        
-        self.addParameter(
-            QgsProcessingParameterRasterLayer(
-                INPUT_URB,
-                self.tr('Input layer - raster of urban interface'),
-                optional = True,
-            )
-        )
         
         
         self.box_selection = (
@@ -241,9 +252,17 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
                                                 'class': 'processing.gui.wrappers.EnumWidgetWrapper',
                                                 'useCheckBoxes': True,
                                                 'columns': 1}})                                
-        self.addParameter(box_selection_obj)         
+        self.addParameter(box_selection_obj)   
+
         
-        
+        self.addParameter(
+            QgsProcessingParameterRasterLayer(
+                INPUT_URB,
+                self.tr('Input layer - raster of urban interface'),
+                optional = True,
+            )
+        )
+
         
         self.addParameter(
             QgsProcessingParameterFeatureSink(
@@ -253,6 +272,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
+        
         
 
 
@@ -293,6 +313,11 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         veg_path, veg_raster, veg_arr = helper.read_arr_after_qgis_process(vegr)
         nodata = veg_raster.GetRasterBand(1).GetNoDataValue()
         
+        # fule types
+        ft = self.parameterAsRasterLayer(parameters, INPUT_FT, context)
+        ftr = helper.reproject_layer(ft, hazr)
+        ft_path, ft_raster, ft_arr = helper.read_arr_after_qgis_process(ftr)
+
         crs = hazr.crs().authid()
         print(crs)
         
@@ -313,10 +338,10 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         
 
         # fixed parameters for POI input table
-        cols = 8
+        cols = 6
         index_filename = 0
-        indexes_vulnerabilities = [1,2,3,4,5,6]
-        index_exposure = 7
+        indexes_vulnerabilities = [1,2,3,4]
+        index_exposure = 5
         
         poi_table, nrows = prepare_layers.read_exposed_table(exposed_table, dirpath,
                                                       cols, 
@@ -333,8 +358,15 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         
     
         # max sliding windows on 'itensity' layer
-        hazard_max_filter = helper.max_sliding_windows(hazard_arr, windows_size = (3,3)).astype(int)   
+        hazard_max_filter = helper.max_sliding_windows(hazard_arr, windows_size = (3,3)).astype(int) 
+        ft_max_filter =  helper.max_sliding_windows(ft_arr, windows_size = (3,3)).astype(int)
 
+        # open file of probailities
+        p_p = self.parameterAsRasterLayer(parameters, INPUT_PROB, context)
+        p = helper.reproject_layer(p_p, hazr)
+        _, _, P = helper.read_arr_after_qgis_process(p)
+        # P has a single value for each H class, eval max window as the hazard
+        P = helper.max_sliding_windows(P, windows_size = (3,3))
         
         PDD_arrays = list()
         list_poi_vector_layers = list()
@@ -350,7 +382,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
                 
                 print('reprojected')
                 poi_arr, poi_centroid = prepare_layers.prepare_single_poi(poi_layer, hazr)
-                damage_degree_map = risk_model.evaluate_potential_damage(hazard_max_filter, poi_arr, V, E)
+                damage_degree_map = risk_model.evaluate_potential_damage(ft_max_filter, poi_arr, V, E, P)
                 PDD_arrays.append(damage_degree_map)
                 
                 # in this new framework the risk is just a classification of the potential damage (because V derives from H)
@@ -409,7 +441,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
             road_layer = helper.reproject_vector_layer(road_layer, prj = crs)
 
             road_arr = prepare_layers.prepare_single_linear_poly(road_layer, hazr)
-            damage_degree_map = risk_model.evaluate_potential_damage(hazard_max_filter, road_arr, V, E)
+            damage_degree_map = risk_model.evaluate_potential_damage(ft_max_filter, road_arr, V, E, P)
             # saving road arrs in a custom list - it will be used to mask the total damage map, menaing if there is road nothig ellse could exists
             road_D_arr_list.append(damage_degree_map)
             PDD_arrays.append(damage_degree_map)
@@ -446,11 +478,11 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
             vegp, vegras, veget_arr = helper.read_arr_after_qgis_process(vegr)
             
             # here hazard is smoothed: each pixel take average value of about 400 meters so that we can see what there is in the surrondings. 
-            smoothing_diameter_size = 6
-            hazard_smoothed = helper.average_sliding_windows(hazard_arr, windows_size = smoothing_diameter_size)
-            hazard_smoothed = np.round(hazard_smoothed)
+            # smoothing_diameter_size = 6
+            # ft_smoothed = helper.average_sliding_windows(ft_arr, windows_size = smoothing_diameter_size)
+            # ft_smoothed = np.round(ft_smoothed)
             
-            damage_degree_map = risk_model.evaluate_potential_damage(hazard_smoothed, veget_arr, V, E)
+            damage_degree_map = risk_model.evaluate_potential_damage(ft_max_filter, veget_arr, V, E, P)
             PDD_arrays.append(damage_degree_map)
             out_path0 = os.path.join(out_dirpath, basename.split('.')[0] +'_damage')
             helper.save_temporary_array(damage_degree_map, hazr, out_path0)
@@ -500,11 +532,12 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
             else:
                 rescaling = False
             
-            pop_arr_cl = prepare_layers.prepare_population(pop_layer, 
-                                                           hazr, 
-                                                           conversion = rescaling)
+            pop_arr, pop_arr_cl = prepare_layers.prepare_population(pop_layer, 
+                                                                    hazr, 
+                                                                    conversion = rescaling)
             
-            risk_pop = risk_model.risk_matrix(hazard_max_filter, pop_arr_cl)
+            # risk_pop = risk_model.risk_matrix(hazard_max_filter, pop_arr_cl)
+            risk_pop = pop_arr * P
             name_pop_risk = os.path.join(out_dirpath, 'POP')
             helper.save_temporary_array(risk_pop, hazr, name_pop_risk)
         
@@ -564,7 +597,7 @@ class RiskAlgorithm(QgsProcessingAlgorithm):
         contain lowercase alphanumeric characters only and no spaces or other
         formatting characters.
         """
-        return 'BETA'
+        return ''
 
     def tr(self, string):
         return QCoreApplication.translate('Processing', string)

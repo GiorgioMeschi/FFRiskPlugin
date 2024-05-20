@@ -153,7 +153,7 @@ class PrepareRiskInputs:
         pop_arr_cl = helper.raster_classes_vals(pop_arr,  pop_classes, nodata = 0, norm = False)
         
         
-        return pop_arr_cl
+        return pop_arr, pop_arr_cl
         
 
 

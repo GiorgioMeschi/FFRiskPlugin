@@ -401,6 +401,11 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         helper.save_temporary_array(hazard_arr, dem, haz_p)
         helper.save_temporary_array(hazard_arr_12cl, dem, haz12_p)
 
+        # finally, evelaute the layer of probability on the static map
+        probabilities = helper.evalaute_probabilities(hazard_arr_12cl, fires_arr)
+        prob_p = os.path.join(dowload_path, 'probabilities')
+        helper.save_temporary_array(probabilities, dem, prob_p)
+
         results = {
         }
         
