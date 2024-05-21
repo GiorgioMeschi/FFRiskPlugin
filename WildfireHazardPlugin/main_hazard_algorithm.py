@@ -103,7 +103,7 @@ SAMPLE_TRAIN = 'SAMPLE_TRAIN'
 MAX_DEPTH = 'MAX_DEPTH'
 RISICO_CODE = 'RISICO_CODE'
 FUEL_MODEL_CODE = 'FUEL_MODEL_CODE'
-
+NFIRES = 'NFIRES'
 
 
 #%%
@@ -193,7 +193,14 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
             )
         )
 
-                
+        self.addParameter(
+             QgsProcessingParameterNumber(
+                NFIRES,
+                self.tr('lenght of wildfire dataset (years)'),
+                optional=False,
+                defaultValue=15,
+            )
+        )
 
         self.addParameter(
              QgsProcessingParameterNumber(
@@ -402,7 +409,8 @@ class HazardAlgorithm(QgsProcessingAlgorithm):
         helper.save_temporary_array(hazard_arr_12cl, dem, haz12_p)
 
         # finally, evelaute the layer of probability on the static map
-        probabilities = helper.evalaute_probabilities(hazard_arr_12cl, fires_arr)
+        len_years = self.parameterAsInt(parameters, NFIRES, context)
+        probabilities = helper.evalaute_probabilities(hazard_arr_12cl, fires_arr, len_years)
         prob_p = os.path.join(dowload_path, 'probabilities')
         helper.save_temporary_array(probabilities, dem, prob_p)
 

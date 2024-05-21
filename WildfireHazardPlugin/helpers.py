@@ -21,9 +21,7 @@ class ProcessingHelper:
         raster = gdal.Open(path)
         array = raster.GetRasterBand(1).ReadAsArray()
         
-        return path, raster, array
-
-    def evalaute_probabilities(self, hazard_arr, fires_arr):
+    def evalaute_probabilities(self, hazard_arr, fires_arr, len_years):
 
         P = np.zeros(hazard_arr.shape)
         h_cl = list(range(1,13))
@@ -31,7 +29,7 @@ class ProcessingHelper:
             # percentage of fires in each hazard class
             burned_pixels = np.where(hazard_arr == h, fires_arr, 0).sum()
             all_pixels = np.where(hazard_arr == h, 1, 0).sum()
-            P = np.where(hazard_arr == h, burned_pixels / all_pixels, P)
+            P = np.where(hazard_arr == h, (burned_pixels / len_years) / all_pixels, P)
 
         return P
         
