@@ -7,7 +7,7 @@ evaluation of:
 - wildfire intensity "worst case scenario" based only on fuel type coverage
 - wildfire Hazard throught a custom contingency matrix of the 2 previous products
 - wildfire RISK considering different type of exposed elements (POI, fuel type, population density, roads)
-- Wildfire exposed element specific risk - right now just for POI elements.
+- Wildfire exposed element specific risk
 
 default values in the plug in take in consideration the usage of CORINE land cover and exposed elements
 from OSM (POI, transports and roads).
