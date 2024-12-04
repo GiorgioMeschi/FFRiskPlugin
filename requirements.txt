@@ -1,0 +1,7 @@
+numpy
+qgis
+PyQt5
+scipy
+scikit-learn
+processing
+gdal
